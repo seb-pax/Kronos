@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "191372593184",
+    "firebase_url": "https://kronos-f3a39.firebaseio.com",
+    "project_id": "kronos-f3a39",
+    "storage_bucket": "kronos-f3a39.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:191372593184:android:f609db812337a9e3",
+        "android_client_info": {
+          "package_name": "com.pacreau.seb.kronos"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "191372593184-h0ufq5aq5eqmer9qe1bt6oshc5jd230a.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC4yxXG-HS4Ks_6Cqie-hT-VMCULHV8rFc"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
