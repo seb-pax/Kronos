@@ -17,6 +17,8 @@
     <string name="action_sign_in">Sign in or register</string>
     <string name="action_sign_in_short">Sign in</string>
     <string name="error_invalid_email">This email address is invalid</string>
+    <string name="error_invalid_duration">La durée totale est invalide</string>
+    <string name="error_invalid_maxcount">Le nombre de sonneries est invalide</string>
     <string name="error_invalid_password">This password is too short</string>
     <string name="error_incorrect_password">This password is incorrect</string>
     <string name="error_field_required">This field is required</string>
@@ -24,4 +26,5 @@
         completions."
     </string>
     <string name="auth_failed">Email et/ou mot de passe erroné</string>
+    <string name="title_alert_delete">Etes vous sûr de supprimer cette alerte ?</string>
 </resources>

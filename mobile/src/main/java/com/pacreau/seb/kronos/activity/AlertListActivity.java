@@ -9,9 +9,11 @@ import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 
 import com.pacreau.seb.kronos.R;
+import com.pacreau.seb.kronos.alert.Alert;
 import com.pacreau.seb.kronos.alert.AlertDao;
 import com.pacreau.seb.kronos.view.AlertRecyclerViewAdapter;
 
@@ -23,13 +25,14 @@ import com.pacreau.seb.kronos.view.AlertRecyclerViewAdapter;
  * item details. On tablets, the activity presents the list of items and
  * item details side-by-side using two vertical panes.
  */
-public class AlertListActivity extends AppCompatActivity {
+public class AlertListActivity extends AppCompatActivity implements AlertDao.AlertListener {
 
 	/**
 	 * Whether or not the activity is in two-pane mode, i.e. running on a tablet
 	 * device.
 	 */
 	private boolean mTwoPane;
+	private static final String TAG = "AlertListActivity";
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -54,9 +57,9 @@ public class AlertListActivity extends AppCompatActivity {
 			}
 		});
 
-		View recyclerView = findViewById(R.id.alert_list);
-		assert recyclerView != null;
-		setupRecyclerView((RecyclerView) recyclerView);
+
+		//assert recyclerView != null;
+		setupRecyclerView();
 
 		if (findViewById(R.id.alert_detail_container) != null) {
 			// The detail container view will be present only in the
@@ -67,8 +70,27 @@ public class AlertListActivity extends AppCompatActivity {
 		}
 	}
 
-	private void setupRecyclerView(@NonNull RecyclerView recyclerView) {
-		recyclerView.setAdapter(new AlertRecyclerViewAdapter(AlertDao.getInstance().getAlerts(), mTwoPane));
+	private void setupRecyclerView() {
+		AlertDao.getInstance().addAlertListenerthis);
+		AlertDao.getInstance().getAsyncAlerts();
 	}
 
+	private AlertRecyclerViewAdapter adapter;
+
+	@Override
+	public void onDataAdded(Alert p_oAlert) {
+		Log.d(TAG, "new data " + p_oAlert);
+		RecyclerView recyclerView = (RecyclerView)findViewById(R.id.alert_list);
+		if (adapter == null) {
+			adapter = new AlertRecyclerViewAdapter(mTwoPane);
+			recyclerView.setAdapter(adapter);
+		}
+		adapter.addItem(p_oAlert);
+	}
+
+	@Override
+	public void onDataRemoved(Alert p_oAlert) {
+		Log.d(TAG, "delete data " + p_oAlert);
+		adapter.deleteItem(p_oAlert);
+	}
 }

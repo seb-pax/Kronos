@@ -42,6 +42,9 @@ import com.pacreau.seb.kronos.R;
 import java.util.ArrayList;
 import java.util.List;
 
+import butterknife.BindView;
+import butterknife.ButterKnife;
+
 import static android.Manifest.permission.READ_CONTACTS;
 
 /**
@@ -63,16 +66,15 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 	};
 	private static final String TAG = LoginActivity.class.getSimpleName();
 
-	/**
-	 * Keep track of the login task to ensure we can cancel it if requested.
-	 */
-	private UserLoginTask mAuthTask = null;
-
 	// UI references.
-	private AutoCompleteTextView mEmailView;
-	private EditText mPasswordView;
-	private View mProgressView;
-	private View mLoginFormView;
+	@BindView(R.id.email)
+	AutoCompleteTextView mEmailView;
+	@BindView(R.id.password)
+	EditText mPasswordView;
+	@BindView(R.id.login_progress)
+	View mProgressView;
+	@BindView(R.id.login_form)
+	View mLoginFormView;
 
 	// authentification
 	private FirebaseAuth mAuth;
@@ -82,11 +84,10 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_login);
+		ButterKnife.bind(this);
 		// Set up the login form.
-		mEmailView = (AutoCompleteTextView) findViewById(R.id.email);
 		populateAutoComplete();
 
-		mPasswordView = (EditText) findViewById(R.id.password);
 		mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
 			@Override
 			public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {
@@ -106,9 +107,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 			}
 		});
 
-		mLoginFormView = findViewById(R.id.login_form);
-		mProgressView = findViewById(R.id.login_progress);
-
 		mAuth = FirebaseAuth.getInstance();
 		mAuthListener = new FirebaseAuth.AuthStateListener() {
 			@Override
@@ -117,6 +115,9 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 				if (user != null) {
 					// User is signed in
 					Log.d(TAG, "onAuthStateChanged:signed_in:" + user.getUid());
+					Intent oIntent = new Intent(LoginActivity.this,AlertListActivity.class);
+					startActivity(oIntent);
+					finish();
 				} else {
 					// User is signed out
 					Log.d(TAG, "onAuthStateChanged:signed_out");
@@ -176,10 +177,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 	 * errors are presented and no actual login attempt is made.
 	 */
 	private void attemptLogin() {
-		if (mAuthTask != null) {
-			return;
-		}
-
 		// Reset errors.
 		mEmailView.setError(null);
 		mPasswordView.setError(null);
@@ -217,18 +214,34 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 			// Show a progress spinner, and kick off a background task to
 			// perform the user login attempt.
 			showProgress(true);
-			mAuthTask = new UserLoginTask(email, password);
-			mAuthTask.execute((Void) null);
+			mAuth.signInWithEmailAndPassword(email, password)
+				.addOnCompleteListener(LoginActivity.this, new OnCompleteListener<AuthResult>() {
+					@Override
+					public void onComplete(@NonNull Task<AuthResult> task) {
+						Log.d(TAG, "signInWithEmailAndPassword:onComplete:" + task.isSuccessful());
+						showProgress(false);
+						// If sign in fails, display a message to the user. If sign in succeeds
+						// the auth state listener will be notified and logic to handle the
+						// signed in user can be handled in the listener.
+						if (task.isSuccessful()) {
+							((CustomApplication) getApplication()).setUser(task.getResult().getUser());
+						} else {
+							mPasswordView.setError(getString(R.string.error_incorrect_password));
+							mPasswordView.requestFocus();
+							Log.w(TAG, "signInWithEmailAndPassword:failed", task.getException());
+							Toast.makeText(LoginActivity.this, R.string.auth_failed,
+									Toast.LENGTH_SHORT).show();
+						}
+					}
+				});
 		}
 	}
 
 	private boolean isEmailValid(String email) {
-		//TODO: Replace this with your own logic
 		return email.contains("@");
 	}
 
 	private boolean isPasswordValid(String password) {
-		//TODO: Replace this with your own logic
 		return password.length() > 4;
 	}
 
@@ -332,87 +345,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 		};
 
 		int ADDRESS = 0;
-		int IS_PRIMARY = 1;
-	}
-
-	/**
-	 * Represents an asynchronous login/registration task used to authenticate
-	 * the user.
-	 */
-	public class UserLoginTask extends AsyncTask<Void, Void, Boolean> {
-
-		private final String mEmail;
-		private final String mPassword;
-		private final String success = new String();
-
-		UserLoginTask(String email, String password) {
-			mEmail = email;
-			mPassword = password;
-		}
-
-		@Override
-		protected Boolean doInBackground(Void... params) {
-			//try {
-			Log.d("UserLoginTask", "doInBackground");
-			// Simulate network access.
-			mAuth.signInWithEmailAndPassword(mEmail, mPassword)
-					.addOnCompleteListener(LoginActivity.this, new OnCompleteListener<AuthResult>() {
-						@Override
-						public void onComplete(@NonNull Task<AuthResult> task) {
-							Log.d(TAG, "signInWithEmail:onComplete:" + task.isSuccessful());
-
-							// If sign in fails, display a message to the user. If sign in succeeds
-							// the auth state listener will be notified and logic to handle the
-							// signed in user can be handled in the listener.
-							boolean bSuccess = task.isSuccessful();
-							success.concat(String.valueOf(bSuccess));
-							if (bSuccess) {
-								((CustomApplication) getApplication()).setUser(task.getResult().getUser());
-							} else {
-								Log.w(TAG, "signInWithEmail:failed", task.getException());
-								Toast.makeText(LoginActivity.this, R.string.auth_failed,
-										Toast.LENGTH_SHORT).show();
-							}
-						}
-					});
-
-
-			//Thread.sleep(2000);
-			//} catch (InterruptedException e) {
-			//	return false;
-			//}
-			/*
-			for (String credential : DUMMY_CREDENTIALS) {
-				String[] pieces = credential.split(":");
-				if (pieces[0].equals(mEmail)) {
-					// Account exists, return true if the password matches.
-					return pieces[1].equals(mPassword);
-				}
-			}*/
-
-			return success.equalsIgnoreCase("true");
-		}
-
-		@Override
-		protected void onPostExecute(final Boolean success) {
-			mAuthTask = null;
-			showProgress(false);
-
-			if (success) {
-				finish();
-				Intent oIntent = new Intent(LoginActivity.this,AlertListActivity.class);
-				startActivity(oIntent);
-			} else {
-				mPasswordView.setError(getString(R.string.error_incorrect_password));
-				mPasswordView.requestFocus();
-			}
-		}
-
-		@Override
-		protected void onCancelled() {
-			mAuthTask = null;
-			showProgress(false);
-		}
 	}
 }
 

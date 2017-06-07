@@ -1,14 +1,13 @@
 package com.pacreau.seb.kronos.fragment;
 
+import android.app.Activity;
 import android.databinding.DataBindingUtil;
-import android.media.Ringtone;
-import android.media.RingtoneManager;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,6 +20,7 @@ import com.pacreau.seb.kronos.alert.Alert;
 import com.pacreau.seb.kronos.alert.AlertDao;
 import com.pacreau.seb.kronos.databinding.AlertDetailBinding;
 import com.pacreau.seb.kronos.service.NotificationService;
+import com.pacreau.seb.kronos.service.RingtoneService;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -38,15 +38,21 @@ public class AlertDetailFragment extends Fragment implements View.OnClickListene
 	 * represents.
 	 */
 	public static final String ARG_DETAIL_ALERT_ID = "detail_id";
+	public static final String TAG = "AlertDetailFragment";
+	private static final long INTERMEDIAIRE_ALARM_DURATION = 3;
+	private static final long SNACK_DISPLAY_DURATION = 5;
 
 	private FloatingActionButton oPauseButton;
 	private FloatingActionButton oStopButton;
 	private FloatingActionButton oLauncherButton;
 
 	private TextView oDisplayedDurationRestView;
-	private long lDurationInMillisUntifFinished;
+	private long lDurationInMillisUntilFinished;
+	private long lNextAlarmTimeInMillis;
+	private long lDurationBetweenAlarm;
+
+
 	private CountDownTimer oCountDownTimer;
-	private Ringtone ringtone;
 
 	/**
 	 * The dummy content this fragment is presenting.
@@ -72,6 +78,7 @@ public class AlertDetailFragment extends Fragment implements View.OnClickListene
 			if (appBarLayout != null) {
 				appBarLayout.setTitle(String.valueOf(alert.getTotalDuration()));
 			}*/
+			RingtoneService.getInstance().prepare(this.getActivity());
 		}
 
 	}
@@ -86,8 +93,6 @@ public class AlertDetailFragment extends Fragment implements View.OnClickListene
 		oPauseButton = (FloatingActionButton) oAlertBinding.getRoot().findViewById(R.id.alert_detail_pause_button);
 
 		oLauncherButton.setOnClickListener(this);
-		Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
-		ringtone = RingtoneManager.getRingtone(this.getContext(), notification);
 
 		return oAlertBinding.getRoot();
 	}
@@ -118,24 +123,25 @@ public class AlertDetailFragment extends Fragment implements View.OnClickListene
 							.setAction("Action", null).show();
 					launchCountDownTimer();
 				}
-				if (ringtone != null && ringtone.isPlaying()) {
-					ringtone.stop();
-				}
+				RingtoneService.getInstance().stopRingtone();
+
 				break;
 			case R.id.alert_detail_stop_button:
 				setCurrentAlertState(AlertDetailActivity.AlertState.STOPPED);
 				oCountDownTimer.cancel();
-				displayDurationInView(lDurationInMillisUntifFinished);
+				lDurationInMillisUntilFinished = alert.getTotalDuration();
+				displayDurationInView(lDurationInMillisUntilFinished);
 				Snackbar.make(view, "Chrono stoppé", Snackbar.LENGTH_LONG)
 						.setAction("Action", null).show();
-				if (ringtone != null && ringtone.isPlaying()) {
-					ringtone.stop();
-				}
+				RingtoneService.getInstance().stopRingtone();
+
 				break;
 			case R.id.alert_detail_launch_button:
 				if (this.getCurrentAlertState() == AlertDetailActivity.AlertState.STOPPED) {
-					lDurationInMillisUntifFinished = alert.getTotalDuration() * TimeUnit.SECONDS.toMillis(1);
+					lDurationInMillisUntilFinished =  TimeUnit.SECONDS.toMillis(alert.getTotalDuration());
 				}
+				lDurationBetweenAlarm = TimeUnit.SECONDS.toMillis(alert.getTotalDuration() / alert.getMaxCount() );
+				lNextAlarmTimeInMillis = lDurationInMillisUntilFinished - lDurationBetweenAlarm;
 				setCurrentAlertState(AlertDetailActivity.AlertState.ACTIVATED);
 				Snackbar.make(view, "Chrono lancé", Snackbar.LENGTH_LONG)
 						.setAction("Action", null).show();
@@ -146,25 +152,43 @@ public class AlertDetailFragment extends Fragment implements View.OnClickListene
 	}
 
 	private void launchCountDownTimer() {
-		final View thisactivity = this.getView();
-		oCountDownTimer = new CountDownTimer(lDurationInMillisUntifFinished, 1000) { // adjust the milli seconds here
+		final View thisview = this.getView();
+		final Activity thisactivity = this.getActivity();
+		oCountDownTimer = new CountDownTimer(lDurationInMillisUntilFinished, 1000) { // adjust the milli seconds here
 			public void onTick(long millisUntilFinished) {
-				lDurationInMillisUntifFinished = millisUntilFinished;
-				displayDurationInView(lDurationInMillisUntifFinished);
+				lDurationInMillisUntilFinished = millisUntilFinished;
+				displayDurationInView(lDurationInMillisUntilFinished);
+				Log.d(TAG,"lDurationInMillisUntilFinished"+ TimeUnit.MILLISECONDS.toSeconds(lDurationInMillisUntilFinished));
+				Log.d(TAG,"millisUntilFinished"+ TimeUnit.MILLISECONDS.toSeconds(millisUntilFinished));
+				Log.d(TAG,"lDurationBetweenAlarm"+ TimeUnit.MILLISECONDS.toSeconds(lDurationBetweenAlarm));
+				long timeInSeconds = TimeUnit.MILLISECONDS.toSeconds(millisUntilFinished);
+				Log.d(TAG,"previous alarm"+ (TimeUnit.MILLISECONDS.toSeconds(lNextAlarmTimeInMillis - lDurationBetweenAlarm) - INTERMEDIAIRE_ALARM_DURATION));
+				if ( timeInSeconds == TimeUnit.MILLISECONDS.toSeconds(lNextAlarmTimeInMillis)) {
+					lNextAlarmTimeInMillis = lNextAlarmTimeInMillis + lDurationBetweenAlarm;
+					RingtoneService.getInstance().startRingtone(false);
+					//NotificationService.getInstance().sendLocalNotification(getContext(), "Chrono fini ",
+					//		"Chrono intermé à ", "");
+
+				} else if (timeInSeconds ==
+						(TimeUnit.MILLISECONDS.toSeconds(lNextAlarmTimeInMillis - lDurationBetweenAlarm)
+								- INTERMEDIAIRE_ALARM_DURATION)) {
+					RingtoneService.getInstance().stopRingtone();
+
+				}
 			}
 
 			public void onFinish() {
 				SimpleDateFormat oSimpleDateFormat = new SimpleDateFormat("HH:MM");
 				String sDate = oSimpleDateFormat.format(new Date(System.currentTimeMillis()));
 
-				Snackbar.make(thisactivity, "Chrono fini à " + sDate, (int) TimeUnit.MINUTES.toMillis(5))
+				Snackbar.make(thisview, "Chrono fini à " + sDate, (int) TimeUnit.MINUTES.toMillis(SNACK_DISPLAY_DURATION))
 						.setAction("Action", null).show();
 
-				NotificationService.getInstance().sendLocalNotification(getContext(), "Chrono fini ",
-						"Chrono fini à " + sDate, sDate);
-				ringtone.play();
-				lDurationInMillisUntifFinished = 0;
-				displayDurationInView(lDurationInMillisUntifFinished);
+				//NotificationService.getInstance().sendLocalNotification(getContext(), "Chrono fini ",
+				//		"Chrono fini à " + sDate, sDate);
+				RingtoneService.getInstance().startRingtone(true);
+				lDurationInMillisUntilFinished = 0;
+				displayDurationInView(lDurationInMillisUntilFinished);
 
 				setCurrentAlertState(AlertDetailActivity.AlertState.STOPPED);
 			}
@@ -210,13 +234,5 @@ public class AlertDetailFragment extends Fragment implements View.OnClickListene
 		p_oButton.setVisibility(View.GONE);
 		p_oButton.setClickable(false);
 		p_oButton.setOnClickListener(null);
-	}
-
-	@Override
-	public void onDetach() {
-		super.onDetach();
-		if (ringtone != null && ringtone.isPlaying()) {
-			ringtone.stop();
-		}
 	}
 }

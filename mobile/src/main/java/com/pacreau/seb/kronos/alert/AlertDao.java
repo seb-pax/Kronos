@@ -8,6 +8,7 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,10 +28,12 @@ public class AlertDao {
 
 	public static final String KRONOS_ALERT_DAO = AlertDao.class.getName();
 	private static final String ALERT_TABLE = "alerts";
+	private static final String ALERT_FIELD_ID = "id";
 	private static final String ALERT_FIELD_TOTALDURATION = "totalDuration";
 	private static AlertDao instance;
-	private DatabaseReference fireDatabase;
-	private Query query;
+	private DatabaseReference firebaseAlerts;
+	private Query querySelectAll;
+	private Query querySelectById;
 	public static AlertDao getInstance() {
 		if (instance == null) {
 			instance = new AlertDao();
@@ -38,31 +41,31 @@ public class AlertDao {
 		return instance;
 	}
 
-
-	/**
-	 * An array of sample (dummy) items.
-	 */
-	final List<Alert> alerts = new ArrayList<Alert>();
-	/**
-	 * A map of sample (dummy) items, by ID.
-	 */
-	public static final Map<String, Alert> ITEM_MAP = new HashMap<String, Alert>();
+	private List<AlertListener> alertListeners = new ArrayList<AlertListener>();
 
 	private AlertDao() {
-		// Add some sample items.
-		fireDatabase = FirebaseDatabase.getInstance().getReference();
-		query = fireDatabase.child(ALERT_TABLE).orderByChild(ALERT_FIELD_TOTALDURATION);
-		query.addChildEventListener(new ChildEventListener() {
+		alertListeners = new ArrayList<AlertListener>();
+
+		firebaseAlerts = FirebaseDatabase.getInstance().getReference(ALERT_TABLE);
+		querySelectById = firebaseAlerts.child(ALERT_FIELD_ID);
+
+		querySelectAll = firebaseAlerts.orderByChild(ALERT_FIELD_TOTALDURATION);
+		querySelectAll.addChildEventListener(new ChildEventListener() {
 			@Override
 			public void onChildAdded(DataSnapshot dataSnapshot, String s) {
 				Alert oAlert = dataSnapshot.getValue(Alert.class) ;
-				alerts.add(oAlert);
 				Log.d("onChildAdded" , ""+ oAlert);
+				for ( AlertListener alertListener : alertListeners) {
+					alertListener.onDataAdded(oAlert);
+				}
 			}
 
 			@Override
 			public void onChildRemoved(DataSnapshot dataSnapshot) {
-
+				Alert oAlert = dataSnapshot.getValue(Alert.class) ;
+				for ( AlertListener alertListener : alertListeners) {
+					alertListener.onDataRemoved(oAlert);
+				}
 			}
 
 			@Override
@@ -72,26 +75,17 @@ public class AlertDao {
 
 			@Override
 			public void onChildChanged(DataSnapshot dataSnapshot, String s) {
-
+				Alert oAlert = dataSnapshot.getValue(Alert.class) ;
+				for ( AlertListener alertListener : alertListeners) {
+					alertListener.onDataAdded(oAlert);
+				}
 			}
 
 			@Override
 			public void onChildMoved(DataSnapshot dataSnapshot, String s) {
-
+				Alert oAlert = dataSnapshot.getValue(Alert.class) ;
 			}
 		});
-		save(new Alert(24 / 3 * 60, -1, null));
-		save(new Alert(25 / 2 * 60, -1, null));
-		save(new Alert(25 / 4 * 60, -1, null));
-		save(new Alert(12 * 60, -1, null));
-		save(new Alert(10 * 60, -1, null));
-
-		save(new Alert(10, -1, null));
-		save(new Alert(20, -1, null));
-	}
-
-	public Alert getItem(long longExtra) {
-		return ITEM_MAP.get(Long.valueOf(longExtra));
 	}
 
 	public static String formatLongInTime(long p_millisUntilFinished) {
@@ -104,27 +98,52 @@ public class AlertDao {
 	}
 
 	public Alert createEmptyAlert() {
-		Alert oAlert = new Alert(0, -1, null);
-		return oAlert;
+		return new Alert(0, 1, "");
 	}
 
 	public void save(Alert p_oAlert) {
 		String sKey = p_oAlert.getId();
 		if (sKey == null) {
-			sKey = fireDatabase.child(ALERT_TABLE).push().getKey();
+			sKey = firebaseAlerts.push().getKey();
 		}
-		fireDatabase.child(ALERT_TABLE).child(sKey).setValue(p_oAlert);
+		p_oAlert.setId(sKey);
+		firebaseAlerts.child(sKey).setValue(p_oAlert);
 	}
 
-	public void saveL(List<Alert> p_oListAlert) {
-		if (p_oListAlert != null) {
-			for (Alert oAlert : p_oListAlert) {
-				save(oAlert);
+	public void deleteAlert(String p_sId) {
+		firebaseAlerts.child(p_sId).removeValue();
+	}
+
+	public void addAlertListener(AlertListener pAlertListener) {
+		alertListeners.add(pAlertListener);
+	}
+
+	public void removeAlertListener(AlertListener pAlertListener) {
+		alertListeners.remove(pAlertListener);
+	}
+
+	public void  getAsyncAlerts() {
+		querySelectAll = firebaseAlerts.orderByChild(ALERT_FIELD_TOTALDURATION);
+	}
+
+	public void getAsyncAlert(String p_sId) {
+		querySelectById.equalTo(p_sId).addListenerForSingleValueEvent(new ValueEventListener() {
+			@Override
+			public void onDataChange(DataSnapshot dataSnapshot) {
+				for ( AlertListener alertListener : alertListeners) {
+					alertListener.onDataAdded(dataSnapshot.getValue(Alert.class));
+				}
 			}
-		}
+
+			@Override
+			public void onCancelled(DatabaseError databaseError) {
+			}
+		});
 	}
 
-	public List<Alert> getAlerts() {
-		return alerts;
+	public interface AlertListener {
+
+		public void onDataAdded(Alert p_oAlert);
+		public void onDataRemoved(Alert p_oAlert);
 	}
 }

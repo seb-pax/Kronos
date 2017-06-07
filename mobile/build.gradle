@@ -37,10 +37,27 @@ dependencies {
     compile 'com.android.support:support-annotations:25.0.1'
     compile 'com.android.databinding:library:1.2.1'
 
+    compile 'com.firebaseui:firebase-ui-database:1.0.0'
     compile 'com.google.firebase:firebase-database:10.0.1'
     compile 'com.google.firebase:firebase-auth:10.0.1'
+    compile 'com.android.support.constraint:constraint-layout:1.0.2'
 
     testCompile 'junit:junit:4.12'
+
+    compile 'com.google.dagger:dagger:2.9'
+    annotationProcessor 'com.google.dagger:dagger-compiler:2.9'
+    //compile 'com.google.dagger:dagger-android:2.9'
+    //compile 'com.google.dagger:dagger-android-support:2.9' // if you use the support libraries
+    //annotationProcessor 'com.google.dagger:dagger-android-processor:2.9'
+
+    compile 'com.jakewharton:butterknife:8.5.1'
+    annotationProcessor 'com.jakewharton:butterknife-compiler:8.5.1'
+
+    compile 'io.reactivex.rxjava2:rxjava:2.0.9'
+    compile 'io.reactivex.rxjava2:rxandroid:2.0.1'
+
+    compile 'org.greenrobot:eventbus:3.0.0'
+
 }
 
 apply plugin: 'com.google.gms.google-services'

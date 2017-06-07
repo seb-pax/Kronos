@@ -1,6 +1,8 @@
 package com.pacreau.seb.kronos.view;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.databinding.DataBindingUtil;
 import android.databinding.ViewDataBinding;
@@ -15,8 +17,10 @@ import com.pacreau.seb.kronos.BR;
 import com.pacreau.seb.kronos.R;
 import com.pacreau.seb.kronos.activity.AlertDetailActivity;
 import com.pacreau.seb.kronos.alert.Alert;
+import com.pacreau.seb.kronos.alert.AlertDao;
 import com.pacreau.seb.kronos.fragment.AlertDetailFragment;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -31,10 +35,26 @@ public class AlertRecyclerViewAdapter
 		extends RecyclerView.Adapter<AlertViewHolder> {
 
 	private final List<Alert> mValues;
-	private boolean mTwoPane;
+	private boolean mTwoPane = false;
 
-	public AlertRecyclerViewAdapter(List<Alert> items, boolean pTwoPane) {
-		mValues = items;
+	public AlertRecyclerViewAdapter(boolean pTwoPane) {
+		mValues = new ArrayList<Alert>();
+	}
+
+	public void addItem(Alert oAlert) {
+		mValues.add(oAlert);
+		this.notifyItemInserted(mValues.size()-1);
+	}
+
+	public void deleteItem(Alert p_oAlert) {
+		for ( int indice = 0; indice< mValues.size() ; indice++ ) {
+			if (p_oAlert.getId().equals(mValues.get(indice).getId())) {
+				mValues.remove(indice);
+				this.notifyItemRemoved(indice);
+				break;
+			}
+		}
+
 	}
 
 	@Override
@@ -49,17 +69,17 @@ public class AlertRecyclerViewAdapter
 	}
 
 	@Override
-	public void onBindViewHolder(final AlertViewHolder holder, int position) {
+	public void onBindViewHolder(final AlertViewHolder holder, final int p_position) {
 		ViewDataBinding viewDataBinding = holder.getViewDataBinding();
-		viewDataBinding.setVariable(BR.alert, mValues.get(position));
-		final int pos = position;
+		viewDataBinding.setVariable(BR.alert, mValues.get(p_position));
+		final int pos = p_position;
 
 		holder.itemView.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
 				if (mTwoPane) {
 					Bundle arguments = new Bundle();
-					arguments.putString(AlertDetailFragment.ARG_DETAIL_ALERT_ID, String.valueOf(mValues.get(pos).getId()));
+					arguments.putParcelable(AlertDetailFragment.ARG_DETAIL_ALERT_ID, mValues.get(pos));
 					AlertDetailFragment fragment = new AlertDetailFragment();
 					fragment.setArguments(arguments);
 					((AppCompatActivity) v.getContext()).getSupportFragmentManager().beginTransaction()
@@ -68,34 +88,35 @@ public class AlertRecyclerViewAdapter
 				} else {
 					Context context = v.getContext();
 					Intent intent = new Intent(context, AlertDetailActivity.class);
-					intent.putExtra(AlertDetailFragment.ARG_DETAIL_ALERT_ID, mValues.get(pos).getId());
+					intent.putExtra(AlertDetailFragment.ARG_DETAIL_ALERT_ID, mValues.get(pos));
 					context.startActivity(intent);
 				}
 			}
 		});
+		holder.itemView.setOnLongClickListener((new View.OnLongClickListener() {
+			@Override
+			public boolean onLongClick(View v) {
+				AlertDialog dialog = new AlertDialog.Builder(v.getContext()).setTitle(R.string.title_alert_delete).setMessage(
+						R.string.title_alert_delete).setPositiveButton(android.R.string.ok,
+						new DialogInterface.OnClickListener() {
+							@Override
+							public void onClick(DialogInterface dialog, int which) {
+									AlertDao.getInstance().deleteAlert(mValues.get(p_position).getId());
+							}
+						}).setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+					@Override
+					public void onClick(DialogInterface dialog, int which) {
+
+					}
+				}).show();
+				return true;
+			}
+		}));
 	}
 
 	@Override
 	public int getItemCount() {
 		return mValues.size();
 	}
-/*
-		public class ViewHolder extends RecyclerView.ViewHolder {
-			public final View mView;
-			public final TextView mIdView;
-			public final TextView mContentView;
-			public Alert mItem;
 
-			public ViewHolder(View view) {
-				super(view);
-				mView = view;
-				mIdView = (TextView) view.findViewById(R.id.id);
-				mContentView = (TextView) view.findViewById(R.id.intervalInSeconds);
-			}
-
-			@Override
-			public String toString() {
-				return super.toString() + " '" + mContentView.getText() + "'";
-			}
-		}*/
 }

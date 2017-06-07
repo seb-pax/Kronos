@@ -30,13 +30,14 @@ public class Alert extends BaseObservable implements Parcelable {
 
 	@Bindable
 	private String info = "";
+
 	public Alert() {
 
 	}
 	public Alert(long p_totalDuration, long p_maxCount, String p_info) {
 		this.totalDuration = p_totalDuration;
 		this.maxCount = p_maxCount;
-		if (p_info == null) {
+		if (p_info == null && p_totalDuration > 0) {
 			this.info = "Durée : " + AlertDao.formatLongInTime(p_totalDuration * 1000);
 		} else {
 			this.info = p_info;
@@ -49,10 +50,6 @@ public class Alert extends BaseObservable implements Parcelable {
 		totalDuration = parcel.readLong();
 		maxCount = parcel.readLong();
 		info = parcel.readString();
-	}
-
-	public String getKey() {
-		return String.valueOf(id);
 	}
 
 	public String getId() {
@@ -107,11 +104,9 @@ public class Alert extends BaseObservable implements Parcelable {
 		parcel.writeLong(totalDuration);
 		parcel.writeLong(maxCount);
 		parcel.writeString(info);
-
 	}
 
-	public static final Parcelable.Creator<Alert> CREATOR
-			= new Parcelable.Creator<Alert>() {
+	public static final Parcelable.Creator<Alert> CREATOR = new Parcelable.Creator<Alert>() {
 		public Alert createFromParcel(Parcel in) {
 			return new Alert(in);
 		}
@@ -127,5 +122,18 @@ public class Alert extends BaseObservable implements Parcelable {
 				+ "info" + this.info;
 	}
 
+	public VALIDATION_ALERT validate() {
+		if ( totalDuration <= 0) {
+			return VALIDATION_ALERT.TOTAL_DURATION_INVALID;
+		}
 
+		return  VALIDATION_ALERT.VALID;
+	}
+
+	public enum VALIDATION_ALERT {
+		VALID,
+		TOTAL_DURATION_INVALID,
+		MAXCOUNT_INVALID,
+		INFO_INVALID
+	}
 }

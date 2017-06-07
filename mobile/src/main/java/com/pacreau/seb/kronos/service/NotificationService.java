@@ -22,12 +22,17 @@ public class NotificationService {
 
 	private static final String NOTIF_ID_PREF_KEY = "NOTIF_ID_PREF_KEY";
 
-	private NotificationService() {
+	private static NotificationService instance;
 
+	private NotificationService() {
 	}
 
 	public static NotificationService getInstance() {
-		return new NotificationService();
+		if (instance == null) {
+			instance = new NotificationService();
+		}
+
+		return  instance;
 	}
 
 	public static void sendLocalNotification(Context p_oContext, String p_sTitle, String p_sDetail, String p_sComplement) {

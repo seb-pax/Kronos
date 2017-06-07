@@ -3,6 +3,8 @@ package com.pacreau.seb.kronos;
 import android.app.Application;
 
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Logger;
 
 /**
  * Kronos
@@ -18,7 +20,8 @@ public class CustomApplication extends Application {
 	@Override
 	public void onCreate() {
 		super.onCreate();
-		//AlertDao.getInstance().setPreferences(getApplicationContext().getSharedPreferences(AlertDao.KRONOS_ALERT_DAO,  Context.MODE_PRIVATE));
+		FirebaseDatabase.getInstance().setPersistenceEnabled(true);
+		FirebaseDatabase.getInstance().setLogLevel(Logger.Level.DEBUG);
 	}
 
 	public FirebaseUser getUser() {

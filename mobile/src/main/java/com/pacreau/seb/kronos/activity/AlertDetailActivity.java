@@ -62,7 +62,7 @@ public class AlertDetailActivity extends AppCompatActivity {
 			// Create the detail fragment and add it to the activity
 			// using a fragment transaction.
 			if (getIntent().hasExtra(AlertDetailFragment.ARG_DETAIL_ALERT_ID)) {
-				Alert oAlert = AlertDao.getInstance().getItem(getIntent().getLongExtra(AlertDetailFragment.ARG_DETAIL_ALERT_ID, -1));
+				Alert oAlert = getIntent().getParcelableExtra(AlertDetailFragment.ARG_DETAIL_ALERT_ID);
 				binding.setAlert(oAlert);
 				this.setCurrentAlertState(AlertState.STOPPED);
 
@@ -109,6 +109,8 @@ public class AlertDetailActivity extends AppCompatActivity {
 	public void onBackPressed() {
 		if (this.getCurrentAlertState() == AlertState.STOPPED) {
 			super.onBackPressed();
+		} else if (this.getCurrentAlertState() == AlertState.INCREATION) {
+			displayDialog(getString(R.string.alert_edit_lose_modifications));
 		} else {
 			displaySnackMessage(getString(R.string.alert_detail_stop_before_quit));
 		}

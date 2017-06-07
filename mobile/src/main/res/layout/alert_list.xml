@@ -13,6 +13,7 @@
                                         app:layoutManager="LinearLayoutManager"
                                         tools:context="com.pacreau.seb.kronos.activity.AlertListActivity"
                                         tools:listitem="@layout/alert_list_content"
+                                        android:longClickable="true"
                                         />
 </layout>
 
